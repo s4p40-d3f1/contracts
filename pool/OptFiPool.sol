@@ -122,6 +122,16 @@ contract OptFiPool is Initializable, ReentrancyGuard{
   function deposit(address from, uint256 amount) external nonReentrant {
     
     /*
+    * Calculates PST tokens to be minted
+    */
+    uint256 totalBalance = _token.balanceOf(address(this));
+    uint256 shareBalance = _poolShareToken.totalSupply() + _poolWithdrawToken.totalSupply();
+    uint256 shareAmount = amount;
+    if (totalBalance != 0) {
+      shareAmount = amount.mul(shareBalance.div(totalBalance));
+    }
+
+    /*
     * Transfers amount from liquidity provider to the pool contract using approve/transferFrom
     */
     _token.transferFrom(from, address(this), amount);
@@ -129,9 +139,9 @@ contract OptFiPool is Initializable, ReentrancyGuard{
     /*
     * Mint share tokens to liquidity provider
     */
-    _poolShareToken.mint(from, amount);
+    _poolShareToken.mint(from, shareAmount);
 
-    emit LiquidityDeposit(from, amount, _token.balanceOf(address(this)));
+    emit LiquidityDeposit(from, amount, shareAmount, _token.balanceOf(address(this)));
 
   }
 
@@ -368,7 +378,7 @@ contract OptFiPool is Initializable, ReentrancyGuard{
   }
 
   event PoolInitialized(IERC20Metadata _token, IERC20Metadata _poolShareToken, IERC20Metadata _poolWithdrawToken, address _owner);
-  event LiquidityDeposit(address by, uint256 amount, uint256 totalBalance);
+  event LiquidityDeposit(address by, uint256 amount, uint256 shareAmount, uint256 totalBalance);
   event LiquidityWithdrawn(address by, uint256 requested, uint256 remaining, uint256 totalBalance);
   event LiquidityPostdatedWithdrawn(address by, uint256 sent, uint256 totalBalance);
   event LiquidityLocked(uint256 amount, uint256 expiration);
